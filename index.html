@@ -1605,9 +1605,9 @@
       countMinutes.textContent = pad(minutes);
       countSeconds.textContent = pad(seconds);
     }
-
+    let midnightTimer;
     updateMidnightCountdown();
-    const midnightTimer = setInterval(updateMidnightCountdown, 250);
+    midnightTimer = setInterval(updateMidnightCountdown, 250);
 
 
     /* =========================
