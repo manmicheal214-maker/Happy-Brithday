@@ -1,0 +1,88 @@
+name: Fix midnight timer TDZ
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix-midnight-timer:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fix declaration order and verify JavaScript
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('index.html')
+          html = path.read_text(encoding='utf-8')
+
+          old = "updateMidnightCountdown();\n    const midnightTimer = setInterval(updateMidnightCountdown, 250);"
+          new = "let midnightTimer;\n    updateMidnightCountdown();\n    midnightTimer = setInterval(updateMidnightCountdown, 250);"
+
+          if old in html:
+              html = html.replace(old, new, 1)
+          else:
+              # Also handle the same code if accidental whitespace differs.
+              pattern = re.compile(
+                  r'(?m)^\s*updateMidnightCountdown\(\);\s*\n\s*const midnightTimer\s*=\s*setInterval\(updateMidnightCountdown,\s*250\);'
+              )
+              html, count = pattern.subn(
+                  '    let midnightTimer;\n    updateMidnightCountdown();\n    midnightTimer = setInterval(updateMidnightCountdown, 250);',
+                  html,
+                  count=1,
+              )
+              if count == 0:
+                  raise SystemExit('Could not find the midnightTimer initialization pattern')
+
+          path.write_text(html, encoding='utf-8')
+          PY
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path('index.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, flags=re.S | re.I)
+          if not scripts:
+              raise SystemExit('No script block found')
+          Path('/tmp/index-inline.js').write_text('\n'.join(scripts), encoding='utf-8')
+
+          js = Path('/tmp/index-inline.js').read_text(encoding='utf-8')
+          declaration = js.find('let midnightTimer;')
+          if declaration < 0:
+              raise SystemExit('let midnightTimer declaration was not found')
+          const_decl = js.find('const midnightTimer')
+          if const_decl >= 0:
+              raise SystemExit('A const midnightTimer declaration still exists')
+          initialization = js.find('midnightTimer = setInterval(updateMidnightCountdown, 250);')
+          if initialization < declaration:
+              raise SystemExit('midnightTimer is initialized before its declaration')
+
+          # Before the declaration, only the declaration itself may mention
+          # midnightTimer. This prevents a remaining TDZ reference.
+          before = js[:declaration]
+          if 'midnightTimer' in before:
+              raise SystemExit('A midnightTimer reference remains before its declaration')
+          print('midnightTimer declaration/order verification passed')
+          PY
+
+          node --check /tmp/index-inline.js
+          echo 'Inline JavaScript syntax check passed.'
+
+      - name: Commit fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          if git diff --cached --quiet; then
+            echo 'No changes were necessary.'
+            exit 0
+          fi
+          git commit -m 'Fix midnight timer temporal dead zone'
+          git push
