@@ -1,0 +1,89 @@
+name: Fix final ending escapes
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix-final-ending:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Repair literal escapes in final ending blocks
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          # The accidental escaped newlines are only present in the injected
+          # final-ending blocks. Repair those blocks without touching the rest.
+          style_marker = '/* =========================\\n       FINAL ENDING EXPERIENCE\\n    ========================== */'
+          style_start = s.find(style_marker)
+          if style_start != -1:
+              style_end = s.find('</style>', style_start)
+              block = s[style_start:style_end]
+              block = block.replace('\\n', '\n')
+              block = block.replace('\\*', '*').replace('\\.', '.')
+              s = s[:style_start] + block + s[style_end:]
+
+          html_marker = '<!-- =========================\\n       FINAL ENDING EXPERIENCE\\n  ========================== -->'
+          html_start = s.find(html_marker)
+          if html_start != -1:
+              html_end = s.find('<footer>', html_start)
+              if html_end == -1:
+                  html_end = s.find('</body>', html_start)
+              block = s[html_start:html_end]
+              block = block.replace('\\n', '\n')
+              block = block.replace('\\*', '*').replace('\\.', '.')
+              s = s[:html_start] + block + s[html_end:]
+
+          js_marker = '/* =========================\\n       FINAL ENDING EXPERIENCE\\n    ========================== */'
+          js_start = s.rfind(js_marker)
+          if js_start != -1:
+              js_end = s.find('</script>', js_start)
+              block = s[js_start:js_end]
+              block = block.replace('\\n', '\n')
+              # These are also accidental escapes from the same pasted block.
+              block = block.replace('\\*', '*').replace('\\.', '.')
+              s = s[:js_start] + block + s[js_end:]
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Verify inline JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path('index.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script(?:\\s[^>]*)?>(.*?)</script>', html, flags=re.S | re.I)
+          if not scripts:
+              raise SystemExit('No inline script found')
+          Path('/tmp/index-inline.js').write_text('\n'.join(scripts), encoding='utf-8')
+          PY
+          node --check /tmp/index-inline.js
+
+      - name: Commit repaired index.html
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Fix literal newline escapes in final ending'
+          git push
+
+      - name: Remove repair workflow
+        if: github.actor != 'github-actions[bot]'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/fix-final-ending.yml
+          git commit -m 'Remove one-time repair workflow'
+          git push
