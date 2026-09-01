@@ -41,6 +41,260 @@
     }
 
     /* =========================
+       MIDNIGHT LOCK SCREEN
+    ========================== */
+
+    body.birthday-locked {
+      overflow: hidden;
+    }
+
+    #midnightLock {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255, 92, 138, .20), transparent 32%),
+        radial-gradient(circle at 80% 75%, rgba(255, 190, 208, .22), transparent 35%),
+        linear-gradient(135deg, #fff9fb, #ffeef4 55%, #fff7fa);
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 1.2s ease, visibility 1.2s ease;
+    }
+
+    #midnightLock.is-unlocked {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .lock-glow {
+      position: absolute;
+      width: 42vw;
+      height: 42vw;
+      min-width: 260px;
+      min-height: 260px;
+      border-radius: 50%;
+      filter: blur(70px);
+      opacity: .30;
+      animation: lockFloat 10s ease-in-out infinite alternate;
+    }
+
+    .lock-glow.one {
+      top: -15vw;
+      left: -10vw;
+      background: #ff8eae;
+    }
+
+    .lock-glow.two {
+      right: -15vw;
+      bottom: -18vw;
+      background: #ffc5d7;
+      animation-delay: -4s;
+    }
+
+    @keyframes lockFloat {
+      from {
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+      to {
+        transform: translate3d(35px, -25px, 0) scale(1.12);
+      }
+    }
+
+    .lock-hearts {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .lock-heart {
+      position: absolute;
+      bottom: -30px;
+      color: rgba(255, 47, 109, .24);
+      animation: lockHeartFloat linear infinite;
+      user-select: none;
+    }
+
+    @keyframes lockHeartFloat {
+      0% {
+        transform: translateY(0) rotate(0deg) scale(.8);
+        opacity: 0;
+      }
+      15% {
+        opacity: 1;
+      }
+      85% {
+        opacity: .65;
+      }
+      100% {
+        transform: translateY(-115vh) rotate(180deg) scale(1.15);
+        opacity: 0;
+      }
+    }
+
+    .lock-card {
+      position: relative;
+      z-index: 2;
+      width: min(620px, 100%);
+      padding: clamp(34px, 7vw, 70px) clamp(22px, 7vw, 64px);
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, .82);
+      border-radius: 30px;
+      background: rgba(255, 255, 255, .64);
+      box-shadow: 0 25px 80px rgba(93, 26, 50, .12);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      animation: lockCardIn 1s ease both;
+    }
+
+    @keyframes lockCardIn {
+      from {
+        opacity: 0;
+        transform: translateY(24px) scale(.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .lock-heart-icon {
+      width: 62px;
+      height: 62px;
+      margin: 0 auto 24px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: white;
+      background: linear-gradient(135deg, var(--hot-pink), #ff7197);
+      box-shadow: 0 12px 30px rgba(255, 47, 109, .25);
+      font-size: 1.65rem;
+      animation: lockPulse 2.4s ease-in-out infinite;
+    }
+
+    @keyframes lockPulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.07);
+      }
+    }
+
+    .lock-eyebrow {
+      display: inline-block;
+      margin-bottom: 17px;
+      color: var(--hot-pink);
+      font-family: Arial, sans-serif;
+      font-size: .72rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: .22em;
+    }
+
+    .lock-card h2 {
+      margin-bottom: 16px;
+      font-size: clamp(2.35rem, 7vw, 4.8rem);
+      line-height: .98;
+      letter-spacing: -.04em;
+    }
+
+    .lock-card h2 span {
+      color: var(--hot-pink);
+      font-style: italic;
+    }
+
+    .lock-subtitle {
+      max-width: 470px;
+      margin: 0 auto 32px;
+      color: var(--muted);
+      font-size: clamp(1rem, 2.6vw, 1.12rem);
+      line-height: 1.7;
+    }
+
+    .countdown {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      width: min(480px, 100%);
+      margin: 0 auto 26px;
+    }
+
+    .countdown-unit {
+      min-width: 0;
+      padding: 16px 8px 14px;
+      border-radius: 17px;
+      background: rgba(255, 255, 255, .72);
+      border: 1px solid rgba(255, 255, 255, .9);
+      box-shadow: 0 8px 25px rgba(93, 26, 50, .06);
+    }
+
+    .countdown-number {
+      display: block;
+      color: var(--dark);
+      font-family: Arial, sans-serif;
+      font-size: clamp(1.45rem, 5vw, 2.15rem);
+      font-weight: 700;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .countdown-label {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-family: Arial, sans-serif;
+      font-size: .63rem;
+      text-transform: uppercase;
+      letter-spacing: .13em;
+    }
+
+    .lock-time {
+      color: var(--muted);
+      font-family: Arial, sans-serif;
+      font-size: .72rem;
+      letter-spacing: .08em;
+    }
+
+    @media (max-width: 520px) {
+      .lock-card {
+        border-radius: 24px;
+        padding: 34px 17px 30px;
+      }
+
+      .lock-heart-icon {
+        width: 54px;
+        height: 54px;
+        margin-bottom: 20px;
+      }
+
+      .countdown {
+        gap: 7px;
+      }
+
+      .countdown-unit {
+        padding: 14px 4px 12px;
+        border-radius: 14px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #midnightLock *,
+      #midnightLock *::before,
+      #midnightLock *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
+    /* =========================
        BACKGROUND
     ========================== */
 
@@ -790,6 +1044,44 @@
 
 <body>
 
+  <!-- Midnight Birthday Lock -->
+  <div id="midnightLock" aria-live="polite">
+    <div class="lock-glow one"></div>
+    <div class="lock-glow two"></div>
+    <div class="lock-hearts" id="lockHearts" aria-hidden="true"></div>
+
+    <div class="lock-card">
+      <div class="lock-heart-icon" aria-hidden="true">♡</div>
+      <span class="lock-eyebrow">A little something is waiting for you...</span>
+      <h2>Come back at <span>midnight.</span> ❤️</h2>
+      <p class="lock-subtitle">
+        Your birthday surprise is tucked away for just a little longer.
+        The wait will be worth it.
+      </p>
+
+      <div class="countdown" aria-label="Countdown to midnight">
+        <div class="countdown-unit">
+          <span class="countdown-number" id="countDays">00</span>
+          <span class="countdown-label">Days</span>
+        </div>
+        <div class="countdown-unit">
+          <span class="countdown-number" id="countHours">00</span>
+          <span class="countdown-label">Hours</span>
+        </div>
+        <div class="countdown-unit">
+          <span class="countdown-number" id="countMinutes">00</span>
+          <span class="countdown-label">Minutes</span>
+        </div>
+        <div class="countdown-unit">
+          <span class="countdown-number" id="countSeconds">00</span>
+          <span class="countdown-label">Seconds</span>
+        </div>
+      </div>
+
+      <div class="lock-time">September 2, 2026 · 12:00 AM · Dubai time</div>
+    </div>
+  </div>
+
   <!-- Animated Background -->
   <div class="background">
     <div class="orb one"></div>
@@ -1064,6 +1356,71 @@
 
 
   <script>
+    /* =========================
+       MIDNIGHT UNLOCK
+       Target: 2026-09-02 00:00:00 Asia/Dubai (UTC+4)
+       Equivalent UTC instant: 2026-09-01T20:00:00Z
+    ========================== */
+
+    const MIDNIGHT_TARGET_MS = Date.parse("2026-09-01T20:00:00.000Z");
+    const midnightLock = document.getElementById("midnightLock");
+    const lockHearts = document.getElementById("lockHearts");
+    const countDays = document.getElementById("countDays");
+    const countHours = document.getElementById("countHours");
+    const countMinutes = document.getElementById("countMinutes");
+    const countSeconds = document.getElementById("countSeconds");
+
+    document.body.classList.add("birthday-locked");
+
+    for (let i = 0; i < 18; i++) {
+      const heart = document.createElement("span");
+      heart.className = "lock-heart";
+      heart.textContent = i % 3 === 0 ? "♥" : "♡";
+      heart.style.left = Math.random() * 100 + "%";
+      heart.style.animationDuration = (9 + Math.random() * 9) + "s";
+      heart.style.animationDelay = (-Math.random() * 15) + "s";
+      heart.style.fontSize = (10 + Math.random() * 15) + "px";
+      lockHearts.appendChild(heart);
+    }
+
+    function pad(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function unlockBirthday() {
+      document.body.classList.remove("birthday-locked");
+      midnightLock.classList.add("is-unlocked");
+      clearInterval(midnightTimer);
+    }
+
+    function updateMidnightCountdown() {
+      const remaining = MIDNIGHT_TARGET_MS - Date.now();
+
+      if (remaining <= 0) {
+        countDays.textContent = "00";
+        countHours.textContent = "00";
+        countMinutes.textContent = "00";
+        countSeconds.textContent = "00";
+        unlockBirthday();
+        return;
+      }
+
+      const totalSeconds = Math.floor(remaining / 1000);
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      countDays.textContent = pad(days);
+      countHours.textContent = pad(hours);
+      countMinutes.textContent = pad(minutes);
+      countSeconds.textContent = pad(seconds);
+    }
+
+    updateMidnightCountdown();
+    const midnightTimer = setInterval(updateMidnightCountdown, 250);
+
+
     /* =========================
        FLOATING PARTICLES
     ========================== */
