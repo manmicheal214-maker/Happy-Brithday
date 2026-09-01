@@ -1,0 +1,110 @@
+name: Repair and verify birthday unlock
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Repair index.html
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          bs = chr(92)
+
+          # Remove accidental literal line-break placeholders and escaped
+          # punctuation left by the earlier final-screen insertion.
+          s = s.replace(bs + 'n', '\n')
+          s = s.replace(bs + '*', '*').replace(bs + '.', '.')
+
+          # Fix the timer's temporal-dead-zone bug. Match either the original
+          # const form or an already partially repaired form, but never add a
+          # duplicate declaration.
+          if 'let midnightTimer;' not in s:
+              s, n = re.subn(
+                  r'(?m)^\s*updateMidnightCountdown\(\);\s*\n\s*const midnightTimer\s*=\s*setInterval\(updateMidnightCountdown,\s*250\);',
+                  '    let midnightTimer;\n    updateMidnightCountdown();\n    midnightTimer = setInterval(updateMidnightCountdown, 250);',
+                  s,
+                  count=1,
+              )
+              if n != 1:
+                  raise SystemExit('Could not locate midnight timer initialization')
+          else:
+              s = s.replace(
+                  '    let midnightTimer;\n    updateMidnightCountdown();\n    const midnightTimer = setInterval(updateMidnightCountdown, 250);',
+                  '    let midnightTimer;\n    updateMidnightCountdown();\n    midnightTimer = setInterval(updateMidnightCountdown, 250);',
+                  1,
+              )
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Syntax and targeted runtime verification
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path('index.html').read_text(encoding='utf-8')
+          bs = chr(92)
+          if bs + 'n' in html:
+              raise SystemExit('Literal backslash+n remains')
+          scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, re.S | re.I)
+          if not scripts:
+              raise SystemExit('No script block found')
+          Path('/tmp/index-inline.js').write_text('\n'.join(scripts), encoding='utf-8')
+          js = '\n'.join(scripts)
+          if 'const midnightTimer' in js:
+              raise SystemExit('const midnightTimer remains')
+          if 'let midnightTimer;' not in js:
+              raise SystemExit('let midnightTimer declaration missing')
+          print('Targeted midnightTimer declaration checks passed.')
+          PY
+          node --check /tmp/index-inline.js
+
+          node <<'NODE'
+          const fs = require('fs');
+          const js = fs.readFileSync('/tmp/index-inline.js', 'utf8');
+
+          // Isolate the unlock function and execute it with the timer still
+          // undefined, exactly the edge case that previously threw a TDZ error.
+          const start = js.indexOf('function unlockBirthday()');
+          if (start < 0) throw new Error('unlockBirthday not found');
+          const end = js.indexOf('\n    }', start) + 6;
+          if (end < 6) throw new Error('Could not isolate unlockBirthday');
+          const fn = js.slice(start, end);
+
+          const ctx = {
+            document: { body: { classList: { remove() {} } } },
+            midnightLock: { classList: { add() {} } },
+            midnightTimer: undefined,
+            clearInterval(value) { if (value !== undefined) throw new Error('unexpected timer value'); }
+          };
+          const vm = require('vm');
+          vm.createContext(ctx);
+          vm.runInContext(fn + '\nunlockBirthday();', ctx);
+          console.log('unlockBirthday runtime smoke test passed.');
+          NODE
+
+      - name: Commit repaired index.html
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          if git diff --cached --quiet; then
+            echo 'No index.html changes needed.'
+          else
+            git commit -m 'Fix birthday midnight unlock and verify runtime'
+            git push
+          fi
